@@ -12,7 +12,6 @@ func NewBarrier(N int) Barrier {
 	return Barrier{
 		wg: &_wg,
 	}
-
 }
 
 type Barrier struct {
@@ -24,16 +23,28 @@ func (wgb *Barrier) Wait() {
 	wgb.wg.Wait()
 }
 
-func work(b Barrier) {
+func work(b Barrier, ch chan struct{}) {
 	fmt.Print("start")
 	b.Wait()
 	fmt.Print("end")
+	ch <- struct{}{}
 }
 
 func main() {
-	b := NewBarrier(2)
 
-	go work(b)
-	go work(b)
+	b := NewBarrier(2)
+	ch := make(chan struct{})
+	for i := 0; i < 2; i++ {
+		go work(b, ch)
+	}
+	for i := 0; i < 2; i++ {
+		<-ch
+	}
+	for i := 0; i < 2; i++ {
+		go work(b, ch)
+	}
+	for i := 0; i < 2; i++ {
+		<-ch
+	}
 	time.Sleep(time.Second)
 }
